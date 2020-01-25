@@ -1,4 +1,5 @@
 import sys
+from engine import recognizer
 from argparse import ArgumentParser
 
 class CommandError(Exception):
@@ -50,38 +51,6 @@ class ManagementUtility:
         self.settings_exception = None
         '''
         pass
-    def main_help_text(self, commands_only=False):
-        """Return the script's main help text, as a string."""
-        if commands_only:
-            usage = sorted(get_commands())
-        else:
-            usage = [
-                "",
-                "Type '%s help <subcommand>' for help on a specific subcommand." % self.prog_name,
-                "",
-                "Available subcommands:",
-            ]
-            commands_dict = defaultdict(lambda: [])
-            for name, app in get_commands().items():
-                if app == 'django.core':
-                    app = 'django'
-                else:
-                    app = app.rpartition('.')[-1]
-                commands_dict[app].append(name)
-            style = color_style()
-            for app in sorted(commands_dict):
-                usage.append("")
-                usage.append(style.NOTICE("[%s]" % app))
-                for name in sorted(commands_dict[app]):
-                    usage.append("    %s" % name)
-            # Output an extra note if settings are not properly configured
-            if self.settings_exception is not None:
-                usage.append(style.NOTICE(
-                    "Note that only Django core commands are listed "
-                    "as settings are not properly configured (error: %s)."
-                    % self.settings_exception))
-
-        return '\n'.join(usage)
     def fetch_command(self, subcommand):
         """
         Try to fetch the given subcommand, printing a message with the
@@ -125,18 +94,18 @@ class ManagementUtility:
         parser.add_argument('args', nargs='*')  # catch-all
         '''
         parser = ArgumentParser()
-        parser.add_argument('args', nargs='*') # catch-all
-        parser.add_argument('-t', '--template') # adds the gesture file to the list of gesture template
-        parser.add_argument('-r', '--remove') #clears the templates
+        #parser.add_argument('args', nargs='*') # catch-all
+        parser.add_argument('-t', metavar='<gesturefile>', dest='gesturefile', help="Adds the gesture file to the list of gesture templates.") # adds the gesture file to the list of gesture template
+        parser.add_argument('-r', action='store_const', const='clear', dest='clear', help="Clears the templates.") #clears the templates
+        parser.add_argument('EVENTSTREAM', nargs='?', metavar='<eventstream>', help="Prints the name of gestures as they are recognized from the event stream.")
         #parser.add_argument
         #args = parser.parse_args(self.argv[1:])
         #options, args = parser.parse_known_args(self.argv[1:])
-        
-        
+        self.parser = parser
         try:
             options, args = parser.parse_known_args(self.argv[1:])
-            #handle_default_options(options)
-        except CommandError:
+        except:
+            print("error solved?")
             pass  # Ignore any option errors at this point.
 
         # print(options.args)
@@ -144,29 +113,23 @@ class ManagementUtility:
         # print(options.remove)
         # print(args)
 
-        if subcommand == 'help':
-            print('help')
-            if '--commands' in args:
-                sys.stdout.write(self.main_help_text(commands_only=True) + '\n')
-            elif not options.args:
-                sys.stdout.write(self.main_help_text() + '\n')
-            else:
-                self.fetch_command(options.args[0]).print_help(self.prog_name, options.args[0])
-        # Special-cases: We want 'django-admin --version' and
-        # 'django-admin --help' to work, for backwards compatibility.
-        elif self.argv[1:] in (['--help'], ['-h']):
-            sys.stdout.write(self.main_help_text() + '\n')
+        if subcommand == 'help' or self.argv[1:] in (['--help'], ['-h']):
+            parser.print_help()
         else:
             if subcommand == '-r':
-                print(options.remove)
+                print(options.clear)
+                # Clears the template
             elif subcommand == '-t':
-                print(options.template)
+                print(options.gesturefile)
             else:
-                print(subcommand)
-            self.fetch_command(subcommand).run_from_argv(self.argv)
+                # <eventstream>
+                # Prints the name of gestures as they are recognized from the event stream
+                print(options.EVENTSTREAM)
+            #self.fetch_command(subcommand).run_from_argv(self.argv)
 
 if __name__ == "__main__":
     #print(sys.argv[:])
     utility = ManagementUtility(sys.argv)
     utility.execute()
+    print(recognizer.Point(1,2,1))
     pass
