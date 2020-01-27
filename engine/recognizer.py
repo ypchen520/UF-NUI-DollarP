@@ -1,4 +1,6 @@
 import math
+from .geometry import Geometry
+SAMPLING_RESOLUTION = 32
 
 class Point:
     # /// <summary>
@@ -64,20 +66,9 @@ class Gesture:
         # /// <returns></returns>
         newPoints = []
         for point in points:
-            newPoint = Point(point.X - cp, point.Y - cp, point.StrokeID)
+            newPoint = Point(point.X - cp.X, point.Y - cp.Y, point.StrokeID)
             newPoints.append(newPoint)
         return newPoints
-    def EuclideanDistance(self, a, b):
-        # /// <summary>
-        # /// Computes the Euclidean Distance between two points in 2D
-        # /// </summary>
-        return math.sqrt(self.SqrEuclideanDistance(a, b))
-        
-    def SqrEuclideanDistance(self, a, b):
-        # /// <summary>
-        # /// Computes the Squared Euclidean Distance between two points in 2D
-        # /// </summary>
-        return (a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y)
 
     def PathLength(self, points):
         # /// <summary>
@@ -88,7 +79,7 @@ class Gesture:
         length = 0
         for i in range(1, len(points)):
             if points[i].StrokeID == points[i - 1].StrokeID:
-                length = length + self.EuclideanDistance(points[i - 1], point[i])
+                length = length + Geometry.EuclideanDistance(points[i - 1], points[i])
         return length
 
     def Resample(self, points, n):
@@ -105,7 +96,7 @@ class Gesture:
         D = 0
         for i in range(1, len(points)):
             if points[i].StrokeID == points[i - 1].StrokeID:
-                d = self.EuclideanDistance(points[i - 1], point[i])
+                d = Geometry.EuclideanDistance(points[i - 1], points[i])
                 if D + d >= I:
                     firstPoint = points[i - 1]
                     while D + d >= I:
@@ -128,105 +119,69 @@ class Gesture:
         return newPoints
 
 class PointCloudRecognizer:
-    def __init__(self):
-    def Classify(self,):
-    def GreedyCloudMatch(self,):
+    def __init__(self, templates):
+        self.templates = templates
+    def Classify(self, candidate, trainingSet):
+        # /// <summary>
+        # /// Main function of the $P recognizer.
+        # /// Classifies a candidate gesture against a set of training samples.
+        # /// Returns the class of the closest neighbor in the training set.
+        # /// </summary>
+        # /// <param name="candidate"></param>
+        # /// <param name="trainingSet"></param>
+        # /// <returns></returns>
+        minDistance = float("inf")
+        gestureClass = ""
+        for template in trainingSet:
+            dist = self.GreedyCloudMatch(candidate.Points, template.Points)
+            if dist < minDistance:
+                minDistance = dist
+                gestureClass = template.Name
+        return gestureClass
+        
+    def GreedyCloudMatch(self,points1, points2):
         # /// <summary>
         # /// Implements greedy search for a minimum-distance matching between two point clouds
         # /// </summary>
         # /// <param name="points1"></param>
         # /// <param name="points2"></param>
         # /// <returns></returns>
-    def CloudDistance(self,):
-
-namespace PDollarGestureRecognizer
-{
-    /// <summary>
-    /// Implements the $P recognizer
-    /// </summary>
-    public class PointCloudRecognizer
-    {
-        /// <summary>
-        /// Main function of the $P recognizer.
-        /// Classifies a candidate gesture against a set of training samples.
-        /// Returns the class of the closest neighbor in the training set.
-        /// </summary>
-        /// <param name="candidate"></param>
-        /// <param name="trainingSet"></param>
-        /// <returns></returns>
-        public static string Classify(Gesture candidate, Gesture[] trainingSet)
-        {
-            float minDistance = float.MaxValue;
-            string gestureClass = "";
-            foreach (Gesture template in trainingSet)
-            {
-                float dist = GreedyCloudMatch(candidate.Points, template.Points);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    gestureClass = template.Name;
-                }
-            }
-            return gestureClass;
-        }
-
-        /// <summary>
-        /// Implements greedy search for a minimum-distance matching between two point clouds
-        /// </summary>
-        /// <param name="points1"></param>
-        /// <param name="points2"></param>
-        /// <returns></returns>
-        private static float GreedyCloudMatch(Point[] points1, Point[] points2)
-        {
-            int n = points1.Length; // the two clouds should have the same number of points by now
-            float eps = 0.5f;       // controls the number of greedy search trials (eps is in [0..1])
-            int step = (int)Math.Floor(Math.Pow(n, 1.0f - eps));
-            float minDistance = float.MaxValue;
-            for (int i = 0; i < n; i += step)
-            {
-                float dist1 = CloudDistance(points1, points2, i);   // match points1 --> points2 starting with index point i
-                float dist2 = CloudDistance(points2, points1, i);   // match points2 --> points1 starting with index point i
-                minDistance = Math.Min(minDistance, Math.Min(dist1, dist2));
-            }
-            return minDistance;
-        }
-
-        /// <summary>
-        /// Computes the distance between two point clouds by performing a minimum-distance greedy matching
-        /// starting with point startIndex
-        /// </summary>
-        /// <param name="points1"></param>
-        /// <param name="points2"></param>
-        /// <param name="startIndex"></param>
-        /// <returns></returns>
-        private static float CloudDistance(Point[] points1, Point[] points2, int startIndex)
-        {
-            int n = points1.Length;       // the two clouds should have the same number of points by now
-            bool[] matched = new bool[n]; // matched[i] signals whether point i from the 2nd cloud has been already matched
-            Array.Clear(matched, 0, n);   // no points are matched at the beginning
-
-            float sum = 0;  // computes the sum of distances between matched points (i.e., the distance between the two clouds)
-            int i = startIndex;
-            do
-            {
-                int index = -1;
-                float minDistance = float.MaxValue;
-                for(int j = 0; j < n; j++)
-                    if (!matched[j])
-                    {
-                        float dist = Geometry.SqrEuclideanDistance(points1[i], points2[j]);  // use squared Euclidean distance to save some processing time
-                        if (dist < minDistance)
-                        {
-                            minDistance = dist;
-                            index = j;
-                        }
-                    }
-                matched[index] = true; // point index from the 2nd cloud is matched to point i from the 1st cloud
-                float weight = 1.0f - ((i - startIndex + n) % n) / (1.0f * n);
-                sum += weight * minDistance; // weight each distance with a confidence coefficient that decreases from 1 to 0
-                i = (i + 1) % n;
-            } while (i != startIndex);
-            return sum;
-        }
-    }
-}
+        n = len(points1) # the two clouds should have the same number of points by now
+        eps = 0.5        # controls the number of greedy search trials (eps is in [0..1])
+        step = int(math.floor(math.pow(n, 1-eps)))
+        minDistance = float("inf")
+        for i in range(0, n, step):
+            dist1 = self.CloudDistance(points1, points2, i) # match points1 --> points2 starting with index point i
+            dist2 = self.CloudDistance(points2, points1, i) # match points2 --> points1 starting with index point i
+            minDistance = min(minDistance, min(dist1, dist2))
+        return minDistance
+    @staticmethod
+    def CloudDistance(points1, points2, startIndex):
+        # /// <summary>
+        # /// Computes the distance between two point clouds by performing a minimum-distance greedy matching
+        # /// starting with point startIndex
+        # /// </summary>
+        # /// <param name="points1"></param>
+        # /// <param name="points2"></param>
+        # /// <param name="startIndex"></param>
+        # /// <returns></returns>
+        n = len(points1) # the two clouds should have the same number of points by now
+        matched = [0]*n  # matched[i] signals whether point i from the 2nd cloud has been already matched
+        sum = 0
+        i = startIndex
+        while True:
+            index = -1
+            minDistance = float("inf")
+            for j in range(n):
+                if matched[j] == 0:
+                    dist = Geometry.SqrEuclideanDistance(points1[i], points2[j])
+                    if dist < minDistance:
+                        minDistance = dist
+                        index = j
+            matched[index] = 1 # point index from the 2nd cloud is matched to point i from the 1st cloud
+            weight = 1.0 - ((i - startIndex + n) % n) / (1.0 * n)
+            sum = sum + weight * minDistance # weight each distance with a confidence coefficient that decreases from 1 to 0
+            i = (i + 1) % n
+            if i == startIndex:
+                break
+        return sum
