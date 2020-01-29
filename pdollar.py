@@ -1,14 +1,60 @@
 import sys
+import os
 from engine import recognizer
 from argparse import ArgumentParser
+import datetime 
+GESTURE_FOLDER_NAME = "gestureFiles"
+class Classifier:
+    def __init__(self):
+        self.gestureFolder = os.path.join(os.getcwd(), GESTURE_FOLDER_NAME)
+        self.trainingSet = self.LoadTrainingSet()
 
+    def RecognizeEventFile(self, fileName):
+        try:
+            gFile = open(fileName, "r")                
+        except IOError:
+            pass
+        currentStrokeIndex = -1
+        points = []
+        gestureName = ""
+        for line in gFile.readlines():
+            line = line.strip('\n')
+            if line == "MOUSEDOWN":
+                currentStrokeIndex = currentStrokeIndex + 1
+            elif line == "RECOGNIZE":
+                candidate = recognizer.Gesture(points, gestureName)
+                self.RecognizeGesture(candidate)
+            elif line != "MOUSEUP":
+                x, y = line.split(',')
+                points.append(recognizer.Point(float(x),float(y),currentStrokeIndex))
+        gFile.close()
+
+    def RecognizeGesture(self, candidate):
+        #candidate = recognizer.Gesture()
+        gestureClass = recognizer.PointCloudRecognizer().Classify(candidate, self.trainingSet)
+        print(gestureClass)
+    def LoadTrainingSet(self):
+        # /// <summary>
+        # /// Loads training gesture samples from XML files
+        # /// </summary>
+        # /// <returns></returns>
+        if not os.path.isdir(self.gestureFolder):
+            os.mkdir(self.gestureFolder)
+        gestures = []
+        io = IOUtility()
+        for fileName in os.listdir(self.gestureFolder):
+            filePath = os.path.join(self.gestureFolder, fileName)
+            gestures.append(io.ReadGesture(filePath))
+        return gestures
 class IOUtility:
     """
     
     """
     def __init__(self):
-        pass
-    def ReadGesture(self, filename):
+        self.gestureFolder = os.path.join(os.getcwd(), GESTURE_FOLDER_NAME)
+        self.timeOfTemplate = datetime.datetime.today().strftime("%d-%B-%Y-%H-%M-%S")+"-"+str(datetime.datetime.today().microsecond)
+    
+    def ReadGesture(self, fileName):
         # /// Reads a multistroke gesture from an XML file
         # /// </summary>
         # /// <param name="fileName"></param>
@@ -17,7 +63,7 @@ class IOUtility:
         gestureName = ""
         currentStrokeIndex = -1
         try:
-            gFile = open(filename, "r")                
+            gFile = open(fileName, "r")                
         except IOError:
             pass
         lines = gFile.readlines()
@@ -29,13 +75,47 @@ class IOUtility:
             elif lines[i] != "END":
                 x, y = lines[i].split(',')
                 points.append(recognizer.Point(float(x),float(y),currentStrokeIndex))
+        gFile.close()
         return recognizer.Gesture(points, gestureName)
-    def AddToTemplates(self, currentTemplates, newTemplate):
-        return currentTemplates
+    
+    def WriteGesture(self, points, gestureName, fileName):
+        # /// <summary>
+        # /// Writes a multistroke gesture to an XML file
+        # /// </summary>
+        currentStrokeIndex = -1
+        try:
+            gFile = open(fileName, "w")
+        except IOError:
+            pass
+        gFile.write(gestureName)
+        for i in range(len(points)):
+            if points[i].StrokeID != currentStrokeIndex:
+                if i > 0:
+                    gFile.write("END\n")    
+                gFile.write("BEGIN\n")
+                currentStrokeIndex = points[i].StrokeID
+            gFile.write(f"{points[i].X},{points[i].Y}\n")
+        gFile.write("END\n")
+        gFile.close()
+    def SaveGesture(self, fileName):
+        # /// <summary>
+        # /// Save gesture points to folder as a txt file
+        # /// </summary>
+        # /// <param name="fileName"></param>
+        template = self.ReadGesture(fileName)
+        if not os.path.isdir(self.gestureFolder):
+            os.mkdir(self.gestureFolder)
+        # fileCount = self.fileCounter
+        newFileName = fileName.strip(".txt") + "-" + self.timeOfTemplate + ".txt"
+        filePath = os.path.join(self.gestureFolder, newFileName)
+        # while os.path.exists(filePath):
+        #     fileCount = fileCount + 1
+        #     newFileName = fileName.strip(".txt") + str(fileCount).rjust(3, fileCount) + ".txt"
+        #     filePath = os.path.join(self.gestureFolder, newFileName)
 
-    def SaveGesture(self, gestureName):
-        pass
-    def LoadTrainingSet(self):
+        self.WriteGesture(template.Points, template.Name, filePath)
+    
+    def ClearTemplates(self):
         pass
 
 class ManagementUtility:
@@ -58,19 +138,20 @@ class ManagementUtility:
             options, args = parser.parse_known_args(self.argv[1:])
         except:
             pass  # Ignore any option errors at this point.
-        io = IOUtility()
+        #io = IOUtility()
         if subcommand == 'help' or self.argv[1:] in (['--help'], ['-h']):
             parser.print_help()
         else:
             if subcommand == '-r':
-                print(options.clear)
                 # Clears the template
+                IOUtility().ClearTemplates
             elif subcommand == '-t':
-                io.ReadGesture(options.gesturefile)
+                IOUtility().SaveGesture(options.gesturefile)
             else:
                 # <eventstream>
                 # Prints the name of gestures as they are recognized from the event stream
-                print(options.EVENTSTREAM)
+                Classifier().RecognizeEventFile(options.EVENTSTREAM)
+                #print(options.EVENTSTREAM)
 
 if __name__ == "__main__":
     #print(sys.argv[:])

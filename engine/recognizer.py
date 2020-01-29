@@ -36,9 +36,9 @@ class Gesture:
         for point in points:
             minx = min(minx, point.X)
             maxx = max(maxx, point.X)
-            miny = min(minx, point.Y)
-            maxy = max(maxx, point.Y)
-        
+            miny = min(miny, point.Y)
+            maxy = max(maxy, point.Y)
+        # print(minx, miny)
         scale = max(maxx - minx, maxy - miny)
         newPoints = []
         for point in points:
@@ -119,8 +119,8 @@ class Gesture:
         return newPoints
 
 class PointCloudRecognizer:
-    def __init__(self, templates):
-        self.templates = templates
+    def __init__(self):
+        pass
     def Classify(self, candidate, trainingSet):
         # /// <summary>
         # /// Main function of the $P recognizer.
@@ -139,7 +139,7 @@ class PointCloudRecognizer:
                 gestureClass = template.Name
         return gestureClass
         
-    def GreedyCloudMatch(self,points1, points2):
+    def GreedyCloudMatch(self, points1, points2):
         # /// <summary>
         # /// Implements greedy search for a minimum-distance matching between two point clouds
         # /// </summary>
@@ -155,8 +155,8 @@ class PointCloudRecognizer:
             dist2 = self.CloudDistance(points2, points1, i) # match points2 --> points1 starting with index point i
             minDistance = min(minDistance, min(dist1, dist2))
         return minDistance
-    @staticmethod
-    def CloudDistance(points1, points2, startIndex):
+    #@staticmethod
+    def CloudDistance(self, points1, points2, startIndex):
         # /// <summary>
         # /// Computes the distance between two point clouds by performing a minimum-distance greedy matching
         # /// starting with point startIndex
