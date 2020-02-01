@@ -131,7 +131,7 @@ class PointCloudRecognizer:
         # /// <param name="trainingSet"></param>
         # /// <returns></returns>
         minDistance = float("inf")
-        gestureClass = ""
+        gestureClass = "no template" # default class
         for template in trainingSet:
             dist = self.GreedyCloudMatch(candidate.Points, template.Points)
             if dist < minDistance:

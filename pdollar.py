@@ -1,9 +1,10 @@
 import sys
 import os
+import shutil
 from engine import recognizer
 from argparse import ArgumentParser
 import datetime 
-GESTURE_FOLDER_NAME = "gestureFiles"
+GESTURE_FOLDER_NAME = "templates"
 class Classifier:
     def __init__(self):
         self.gestureFolder = os.path.join(os.getcwd(), GESTURE_FOLDER_NAME)
@@ -24,6 +25,8 @@ class Classifier:
             elif line == "RECOGNIZE":
                 candidate = recognizer.Gesture(points, gestureName)
                 self.RecognizeGesture(candidate)
+                points = []
+                gestureName = ""
             elif line != "MOUSEUP":
                 x, y = line.split(',')
                 points.append(recognizer.Point(float(x),float(y),currentStrokeIndex))
@@ -116,7 +119,11 @@ class IOUtility:
         self.WriteGesture(template.Points, template.Name, filePath)
     
     def ClearTemplates(self):
-        pass
+        try:
+            shutil.rmtree(self.gestureFolder)
+        except OSError:
+            print("Templates have been cleared.")
+            #print ("Error: %s -> %s." % (e.filename, e.strerror))        
 
 class ManagementUtility:
     def __init__(self, argv=None):
@@ -138,13 +145,13 @@ class ManagementUtility:
             options, args = parser.parse_known_args(self.argv[1:])
         except:
             pass  # Ignore any option errors at this point.
-        #io = IOUtility()
+
         if subcommand == 'help' or self.argv[1:] in (['--help'], ['-h']):
             parser.print_help()
         else:
             if subcommand == '-r':
                 # Clears the template
-                IOUtility().ClearTemplates
+                IOUtility().ClearTemplates()
             elif subcommand == '-t':
                 IOUtility().SaveGesture(options.gesturefile)
             else:
@@ -157,11 +164,4 @@ if __name__ == "__main__":
     #print(sys.argv[:])
     utility = ManagementUtility(sys.argv)
     utility.Execute()
-    # print(recognizer.Point(1,2,1))
-    # a = recognizer.Point(1,2,1)
-    # b = recognizer.Point(4,6,2)
-    # A = [a]
-    # B = [b]
-    # print (recognizer.PointCloudRecognizer.CloudDistance(A,B,0))
-    # print (recognizer.Geometry.EuclideanDistance(a,b))
     pass
