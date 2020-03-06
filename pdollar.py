@@ -109,6 +109,7 @@ class IOUtility:
         if not os.path.isdir(self.gestureFolder):
             os.mkdir(self.gestureFolder)
         # fileCount = self.fileCounter
+        # TODO: templates saved incorrectly
         newFileName = fileName.strip(".txt") + "-" + self.timeOfTemplate + ".txt"
         filePath = os.path.join(self.gestureFolder, newFileName)
         # while os.path.exists(filePath):
